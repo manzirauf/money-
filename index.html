@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E2329">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Money">
+<title>Money Manager</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+  // Apply saved theme before the page paints (no flash)
+  try {
+    var th = localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = th;
+  } catch (e) {}
+</script>
+<style>
+:root {
+  --ink: #1E2329;        /* crisp charcoal (header, hero, auth) */
+  --ink-2: #2D353F;
+  --blue: #2F6BFF;       /* electric blue */
+  --blue-d: #2456D6;
+  --mint: #3DDBA6;       /* mint */
+  --bg: #F4F7FA;
+  --card: #FFFFFF;
+  --text: #1E2329;
+  --muted: #667085;
+  --line: #E1E7EE;
+  --tint: #EAF1FF;
+  --err: #B3261E; --err-bg: #FDECEC;
+  --ok: #0F7A5A; --ok-bg: #E3F8F0;
+}
+html[data-theme="dark"] {
+  --ink: #0B0E12;
+  --ink-2: #2D3743;
+  --blue-d: #7FA3FF;
+  --bg: #0F1318;
+  --card: #1A2027;
+  --text: #E8EDF3;
+  --muted: #9AA6B6;
+  --line: #2A323C;
+  --tint: #1B2A4A;
+  --err: #FF8A80; --err-bg: #3A1C1C;
+  --ok: #5EEAC0; --ok-bg: #12352B;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.45;
+}
+[hidden] { display: none !important; }
+h1, h2, h3 { margin: 0; }
+button { font: inherit; cursor: pointer; }
+input, select, textarea {
+  width: 100%; padding: 11px 12px; margin: 4px 0 12px;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  font: inherit; color: var(--text); background: var(--card);
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,107,255,.25); }
+label { font-size: .82rem; font-weight: 600; color: var(--muted); }
+
+.btn { display: inline-block; border: 0; border-radius: 10px; padding: 11px 18px; background: var(--blue); color: #fff; font-weight: 700; }
+.btn:hover { filter: brightness(1.08); }
+.btn.block { width: 100%; }
+.btn.navy { background: var(--ink-2); color: #fff; }
+.btn.ghost { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.4); padding: 7px 11px; font-weight: 600; }
+.btn.ghost:hover { background: rgba(255,255,255,.1); filter: none; }
+.btn.small { padding: 6px 10px; font-size: .85rem; }
+.btn.light { background: var(--bg); color: var(--text); border: 1.5px solid var(--line); }
+.link { background: none; border: 0; color: var(--blue-d); font-weight: 600; padding: 4px; }
+.icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+.tools { display: flex; gap: 6px; align-items: center; }
+
+/* ---------- Auth ---------- */
+#auth { min-height: 100vh; background: var(--ink); display: flex; flex-direction: column; justify-content: center; padding: 24px 16px; position: relative; }
+.auth-tools { position: absolute; top: 14px; right: 14px; }
+.auth-wrap { width: 100%; max-width: 400px; margin: 0 auto; }
+.brand { text-align: center; color: #fff; margin-bottom: 22px; }
+.logo { display: inline-grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--blue), var(--mint)); color: #1E2329; font-weight: 800; font-size: 1.6rem; margin-bottom: 10px; }
+.brand h1 { font-size: 1.6rem; }
+.brand p { margin: 4px 0 0; color: #AAB4C3; }
+.auth-card { background: var(--card); border-radius: 18px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,.3); }
+.tabs { display: flex; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 16px; }
+.tabs button { flex: 1; border: 0; background: none; padding: 9px; border-radius: 8px; font-weight: 700; color: var(--muted); }
+.tabs button.on { background: var(--ink-2); color: #fff; }
+.msg { font-size: .88rem; margin: 0 0 12px; padding: 9px 11px; border-radius: 8px; }
+.msg.err { background: var(--err-bg); color: var(--err); }
+.msg.ok { background: var(--ok-bg); color: var(--ok); }
+.msg.info { background: var(--tint); color: var(--blue-d); }
+.auth-foot { text-align: center; margin-top: 12px; }
+.setup { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.setup h3 { font-size: .95rem; margin-bottom: 8px; }
+.build { text-align: center; color: var(--muted); font-size: .72rem; margin-top: 14px; }
+
+/* ---------- App shell ---------- */
+header.top { background: var(--ink); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+header.top small { color: #AAB4C3; display: block; }
+header.top strong { font-size: 1.1rem; }
+main { max-width: 720px; margin: 0 auto; padding: 14px 14px 150px; }
+
+.hero { background: var(--ink); color: #fff; border-radius: 18px; padding: 18px; margin-bottom: 14px; border-bottom: 4px solid var(--blue); }
+.hero-label { color: #AAB4C3; font-size: .85rem; }
+.hero-amt { font-size: 2rem; font-weight: 800; margin: 2px 0 12px; color: var(--mint); }
+.bar { height: 9px; background: rgba(255,255,255,.15); border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--mint); border-radius: 99px; }
+.hero-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: .85rem; color: #D0D7E2; }
+.safe { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); font-size: .9rem; color: #D0D7E2; }
+.safe b { color: var(--mint); }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.card h3 { font-size: .95rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.card h3::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--blue); }
+.card p { margin: 0 0 8px; }
+.advice p { padding: 9px 11px; background: var(--tint); border-left: 3px solid var(--blue); border-radius: 6px; }
+table { width: 100%; border-collapse: collapse; }
+td, th { padding: 8px 4px; border-bottom: 1px solid var(--line); text-align: left; font-size: .92rem; }
+td:last-child:not(:only-child) { text-align: right; }
+th { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+tr:last-child td { border-bottom: 0; }
+.row { display: flex; gap: 10px; } .row > * { flex: 1; min-width: 0; }
+.cls { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.cls:last-child { border-bottom: 0; }
+.cls time { font-weight: 700; color: var(--blue-d); min-width: 96px; }
+.empty { color: var(--muted); }
+
+/* charts */
+.chart { width: 100%; height: auto; display: block; }
+.chart .axis { stroke: var(--line); stroke-width: 1; }
+.chart .bar { fill: var(--blue); }
+.chart .bar.today { fill: var(--mint); }
+.chart .val { fill: var(--muted); font-size: 9px; }
+.chart .lbl { fill: var(--muted); font-size: 10px; }
+.donut-wrap { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.donut { width: 130px; height: 130px; flex: none; }
+.donut .ring { fill: none; stroke: var(--line); stroke-width: 16; }
+.donut .dtot { fill: var(--text); font-size: 16px; font-weight: 700; }
+.legend { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 180px; }
+.legend li { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: .9rem; }
+.legend li i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.legend li span { flex: 1; }
+.legend li small { color: var(--muted); width: 34px; text-align: right; }
+
+/* bottom nav + floating button */
+nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 20; }
+nav.bottom button { flex: 1; background: none; border: 0; padding: 9px 4px 11px; color: var(--muted); font-size: .76rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; border-top: 3px solid transparent; }
+nav.bottom svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+nav.bottom button.on { color: var(--blue-d); border-top-color: var(--mint); }
+.fab { position: fixed; right: 18px; bottom: calc(76px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--blue); color: #fff; font-size: 2rem; line-height: 1; box-shadow: 0 8px 20px rgba(47,107,255,.45); z-index: 25; }
+.fab:active { transform: scale(.94); }
+
+/* quick add sheet */
+.sheet { position: fixed; inset: 0; background: rgba(10,14,20,.55); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.sheet-box { background: var(--card); width: 100%; max-width: 520px; border-radius: 20px 20px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+.sheet-box h3 { margin-bottom: 8px; }
+.sheet-box .amt { font-size: 1.6rem; font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; }
+.chip { border: 1.5px solid var(--line); background: var(--bg); color: var(--text); border-radius: 99px; padding: 8px 14px; font-weight: 600; }
+.chip.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN / SIGN UP ============ -->
+<div id="auth">
+  <div class="tools auth-tools">
+    <button class="btn ghost small js-lang" type="button" aria-label="Language">RW</button>
+    <button class="btn ghost small js-theme" type="button" aria-label="Theme"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+  </div>
+  <div class="auth-wrap">
+    <div class="brand">
+      <div class="logo">M</div>
+      <h1>Money Manager</h1>
+      <p data-i18n="tagline">Know where your money goes.</p>
+    </div>
+    <div class="auth-card">
+      <div class="tabs">
+        <button id="tab_login" class="on" type="button" data-i18n="login">Log in</button>
+        <button id="tab_signup" type="button" data-i18n="signup">Sign up</button>
+      </div>
+      <div id="auth_msg" class="msg" hidden></div>
+
+      <form id="form_login" autocomplete="on">
+        <label for="l_email" data-i18n="phone_or_email">Phone number or email</label>
+        <input id="l_email" type="text" required autocomplete="username">
+        <label for="l_pass" data-i18n="password">Password</label>
+        <input id="l_pass" type="password" required autocomplete="current-password">
+        <button class="btn block" type="submit" data-i18n="login">Log in</button>
+        <div class="auth-foot"><button class="link" type="button" id="forgot" data-i18n="forgot">Forgot password?</button></div>
+      </form>
+
+      <form id="form_signup" hidden autocomplete="on">
+        <label for="s_name" data-i18n="name">Your name</label>
+        <input id="s_name" type="text" required autocomplete="name">
+        <label for="s_phone" data-i18n="phone">Phone number (07...)</label>
+        <input id="s_phone" type="tel" inputmode="tel" placeholder="0788123456" required autocomplete="tel">
+        <label for="s_pass" data-i18n="pass_min">Password (min 6 characters)</label>
+        <input id="s_pass" type="password" minlength="6" required autocomplete="new-password">
+        <label for="s_pass2" data-i18n="pass2">Confirm password</label>
+        <input id="s_pass2" type="password" minlength="6" required autocomplete="new-password">
+        <button class="btn block" type="submit" data-i18n="create">Create account</button>
+      </form>
+
+      <div class="auth-foot" id="demo_wrap" hidden>
+        <button class="link" type="button" id="demo" data-i18n="demo">Continue without account (demo, this device only)</button>
+      </div>
+
+      <div class="setup" id="setup" hidden>
+        <h3 data-i18n="setup_title">Connect Supabase</h3>
+        <label for="cfg_url" data-i18n="setup_url">Project URL</label>
+        <input id="cfg_url" type="text" placeholder="https://xxxx.supabase.co" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <label for="cfg_key" data-i18n="setup_key">Anon / publishable key</label>
+        <input id="cfg_key" type="text" placeholder="eyJ... or sb_publishable_..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button class="btn block" type="button" id="cfg_save" data-i18n="setup_save">Save and connect</button>
+      </div>
+      <div class="build" id="build"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" hidden>
+  <header class="top">
+    <div><small data-i18n="hello">Hello,</small><strong id="hello"></strong></div>
+    <div class="tools">
+      <button class="btn ghost small js-lang" type="button" aria-label="Language">RW</button>
+      <button class="btn ghost small js-theme" type="button" aria-label="Theme"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+      <button class="btn ghost small" id="logout" type="button" data-i18n="logout">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="dash"></section>
+
+    <section id="add" hidden>
+      <div class="card">
+        <h3 data-i18n="paste_sms">Paste the transaction SMS</h3>
+        <textarea id="sms" rows="5" data-i18n-ph="paste_ph" placeholder="Paste the MoMo / Airtel / bank message here"></textarea>
+        <button class="btn" type="button" onclick="parseNow()" data-i18n="read_msg">Read message</button>
+      </div>
+      <div class="card" id="parsed" hidden>
+        <h3 data-i18n="check_save">Check and save</h3>
+        <div class="row"><div><label data-i18n="amount">Amount</label><input id="f_amount" type="number"></div><div><label data-i18n="fee">Fee</label><input id="f_fee" type="number"></div></div>
+        <div class="row">
+          <div><label data-i18n="type">Type</label><select id="f_type"></select></div>
+          <div><label data-i18n="category">Category</label><select id="f_cat"></select></div>
+        </div>
+        <div class="row"><div><label data-i18n="date">Date</label><input id="f_date" type="datetime-local"></div><div><label data-i18n="balance_after">Balance after</label><input id="f_balance" type="number"></div></div>
+        <label data-i18n="who">Person / shop</label><input id="f_who">
+        <button class="btn" type="button" onclick="saveTx()" data-i18n="save_tx">Save transaction</button>
+      </div>
+      <div class="card"><h3 data-i18n="recent">Recent transactions</h3><table id="txlist"></table></div>
+    </section>
+
+    <section id="plan" hidden>
+      <div class="card">
+        <h3 data-i18n="budget_title">Budget and balances</h3>
+        <label data-i18n="weekly_budget">Weekly budget (RWF)</label><input id="budget" type="number">
+        <label data-i18n="cash_hand">Cash in hand</label><input id="cash" type="number">
+        <label data-i18n="savings_l">Savings</label><input id="savings" type="number">
+        <label data-i18n="debts_l">Debts</label><input id="debts" type="number">
+        <button class="btn" type="button" onclick="saveSettings()" data-i18n="save">Save</button>
+        <button class="btn navy" type="button" onclick="exportData()" data-i18n="backup">Backup data</button>
+      </div>
+      <div class="card">
+        <h3 data-i18n="add_class">Add a class (repeats weekly)</h3>
+        <div class="row"><div><label data-i18n="day">Day</label><select id="c_day"></select></div><div><label data-i18n="start">Start</label><input id="c_start" type="time" value="08:00"></div><div><label data-i18n="end">End</label><input id="c_end" type="time" value="10:00"></div></div>
+        <label data-i18n="course">Course</label><input id="c_course" data-i18n-ph="course_ph" placeholder="e.g. Engineering Statics">
+        <label data-i18n="room">Room (optional)</label><input id="c_room">
+        <button class="btn" type="button" onclick="addClass()" data-i18n="add_class_btn">Add class</button>
+      </div>
+      <div class="card"><h3 data-i18n="timetable">Timetable</h3><table id="ttlist"></table></div>
+    </section>
+  </main>
+
+  <nav class="bottom">
+    <button data-tab="dash" type="button">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span data-i18n="home">Home</span></button>
+    <button data-tab="add" type="button">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg><span data-i18n="addsms">Add SMS</span></button>
+    <button data-tab="plan" type="button">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg><span data-i18n="plan">Plan</span></button>
+  </nav>
+</div>
+
+<!-- floating quick add -->
+<button class="fab" id="fab" type="button" aria-label="Quick add" hidden>+</button>
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-box">
+    <h3 data-i18n="quick_add">Quick add (cash spending)</h3>
+    <input id="q_amount" class="amt" type="number" inputmode="numeric" data-i18n-ph="q_amount" placeholder="Amount (RWF)">
+    <div class="chips" id="q_chips"></div>
+    <input id="q_note" type="text" data-i18n-ph="q_note" placeholder="Note (optional)">
+    <div class="row">
+      <button class="btn light" id="q_cancel" type="button" data-i18n="cancel">Cancel</button>
+      <button class="btn" id="q_save" type="button" data-i18n="save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="i18n.js"></script>
+<script src="parser.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
